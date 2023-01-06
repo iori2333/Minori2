@@ -9,7 +9,6 @@ from pymongo.collection import Collection as MongoCollection
 from jieba import posseg
 
 from nonebot.adapters.onebot.v11 import GroupMessageEvent, PrivateMessageEvent, MessageEvent, Message
-from nonebot.log import logger
 
 from minori.utils import DatabaseHook, Collection
 from minori.utils.database import db

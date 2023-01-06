@@ -1,4 +1,3 @@
-from nonebot.adapters import Bot
 from nonebot.adapters.onebot.v11 import MessageEvent
 from nonebot import on_type
 
@@ -12,15 +11,12 @@ matcher = on_type(MessageEvent, priority=Priority.Default)
 
 
 @matcher.handle()
-async def store(event: MessageEvent):
+async def store(event: MessageEvent) -> None:
     db.insert(event)
-    await matcher.finish()
 
 
 @matcher.handle()
-async def random(bot: Bot, event: MessageEvent):
+async def load(event: MessageEvent) -> None:
     msg = seg_db.random(event, p=0.1)
-    if msg is not None:
-        await bot.send(event, msg)
-        return
-    await matcher.finish()
+    if msg is not None and msg != event.message:
+        await matcher.finish(msg)

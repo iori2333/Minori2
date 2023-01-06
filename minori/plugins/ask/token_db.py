@@ -19,7 +19,7 @@ from minori.utils.database import db
 
 class Token(TypedDict):
     created_at: datetime
-    message_id: ObjectId
+    message: str
     session_id: int
 
 
@@ -54,11 +54,11 @@ class TokenDatabase(DatabaseHook):
     ) -> None:
         msg = event.get_message()
         is_text = any(m.is_text() for m in msg)
-        n = len(msg.extract_plain_text())
-        if is_text and n < 10:
+        text = msg.extract_plain_text()
+        if is_text and len(text) < 10:
             token = Token(
                 created_at=datetime.now(),
-                message_id=inserted,
+                message=text,
                 session_id=event.group_id,
             )
             self._group.insert_one(token)
@@ -72,11 +72,11 @@ class TokenDatabase(DatabaseHook):
     ) -> None:
         msg = event.get_message()
         is_text = any(m.is_text() for m in msg)
-        n = len(msg.extract_plain_text())
-        if is_text and n < 10:
+        text = msg.extract_plain_text()
+        if is_text and len(text) < 10:
             token = Token(
                 created_at=datetime.now(),
-                message_id=inserted,
+                message=text,
                 session_id=event.user_id,
             )
             self._private.insert_one(token)
@@ -88,5 +88,4 @@ class TokenDatabase(DatabaseHook):
         if not tokens:
             return None
         token = random.choice(tokens)
-        message = db.find(token["message_id"])
-        return message.get_message() if message is not None else None
+        return Message(token["message"])

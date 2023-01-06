@@ -1,7 +1,7 @@
 import json
 import os
 import os.path as osp
-from typing import Mapping, Type, TypeVar
+from typing import Mapping, Optional, Type, TypeVar
 
 import toml
 from pydantic import BaseModel, Extra
@@ -63,3 +63,10 @@ class ResourceManager:
             logger.error(f"Failed loading resource: {identifier}: {e}")
             raise e
         return im
+
+    def resource_dir(self, identifier: Optional[str] = None) -> str:
+        path = self._resource_dir
+        if identifier is not None:
+            path = osp.join(path, *identifier.split("."))
+        os.makedirs(path, exist_ok=True)
+        return path

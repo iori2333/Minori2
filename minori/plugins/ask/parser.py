@@ -2,13 +2,9 @@ import random
 from typing import Callable, Optional
 import re
 
-from pydantic import BaseModel
-
 from nonebot.adapters.onebot.v11 import Bot, Message, MessageEvent, GroupMessageEvent
 
-from minori.utils.database import db
-from minori.utils.resource import manager
-from .token_db import TokenDatabase
+from .resources import resources, token_db
 
 WHERE = re.compile("哪里")
 HOW_MUCH = re.compile("多少")
@@ -18,32 +14,19 @@ WHAT = re.compile("什么")
 WHO = re.compile("谁")
 OR = re.compile("还是")
 NOT = re.compile(r"(.)(不|没)\1")
-PERSON = re.compile("(你|我)")
+PERSON = re.compile(f"({'|'.join(resources.me + resources.you)})")
 
 Pattern = re.Pattern[str]
 Match = re.Match[str]
-
-token_db = db.register_hook(TokenDatabase)
-
-
-class Tokens(BaseModel):
-    where: list[str]
-    foods: list[str]
-    subjects: list[str]
-    games: list[str]
 
 
 class Parser:
 
     BasicMappingFunc = Callable[[Match], str]
     GroupMappingFunc = Callable[[Match, list[str]], str]
-    Forbidden = {"问题", "问问"}
-    Me = ["我", "Minori", "爷", "👴", "俺"]
-    You = ["你", "您", "贵方", "椰叶"]
 
     def __init__(self) -> None:
         self.basic_mapping: dict[Pattern, Parser.BasicMappingFunc] = {
-            WHERE: self.random_where,
             HOW_MUCH: self.random_how_much,
             HOW_LONG: self.random_how_long,
             WHEN: self.random_when,
@@ -53,21 +36,20 @@ class Parser:
 
         self.group_mapping: dict[Pattern, Parser.GroupMappingFunc] = {
             WHO: self.random_who,
+            WHERE: self.random_where,
         }
-
-        self.resources = manager.model("ask.tokens", Tokens)
 
     @classmethod
     def is_question(cls, message: str) -> bool:
-        if any(message.startswith(x) for x in cls.Forbidden):
+        if any(message.startswith(x) for x in resources.forbidden):
             return False
         return message.startswith("问")
 
     async def parse(self, bot: Bot, event: MessageEvent) -> Optional[Message]:
-        raw_message = event.get_plaintext()
-        if not self.is_question(raw_message):
+        message = event.get_plaintext()
+        if not self.is_question(message):
             return None
-        raw_message = raw_message[1:]
+        raw_message = message[1:]
         raw_message = random.choice(OR.split(raw_message))
         if not raw_message:
             return None
@@ -83,12 +65,9 @@ class Parser:
                 raw_message = reg.sub(lambda x: func2(x, members), raw_message)
 
         raw_message = WHAT.sub(lambda _: self.random_what(event), raw_message)
-        if not raw_message:
+        if not raw_message or raw_message == message:
             return None
         return Message(raw_message)
-
-    def random_where(self, _: Match) -> str:
-        return random.choice(self.resources.where)
 
     def random_how_much(self, _: Match) -> str:
         return str(random.randint(0, 100))
@@ -111,14 +90,22 @@ class Parser:
     def random_who(self, _: Match, members: list[str]) -> str:
         return random.choice(members)
 
+    def random_where(self, _: Match, members: list[str]) -> str:
+        where_fmt = random.choice(resources.where)
+        person = random.choice(members)
+        return where_fmt.format(person)
+
     def replace_person(self, m: Match) -> str:
         p = m.group(1)
-        if p in self.Me:
-            return random.choice(self.You)
-        if p in self.You:
-            return random.choice(self.Me)
+        if p in resources.me:
+            return random.choice(resources.you)
+        if p in resources.you:
+            return random.choice(resources.me)
         return p
 
     def random_what(self, event: MessageEvent) -> str:
         token = token_db.random(event)
         return token.extract_plain_text() if token else ""
+
+
+parser = Parser()
