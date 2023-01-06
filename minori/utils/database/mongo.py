@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from pymongo import MongoClient
 from pymongo.collection import Collection as MongoCollection
 
-T = TypeVar('T', bound=BaseModel)
+T = TypeVar("T", bound=BaseModel)
 
 client = MongoClient("localhost", 27017, username="root", password="root")
 db = client.minori
@@ -41,11 +41,7 @@ class Collection(Generic[T]):
         return self.unwrap(result) if result is not None else None
 
     def query(self, query: dict, limit: Optional[int] = None) -> Sequence[T]:
-        if limit is None:
-            return [
-                self.unwrap(result) for result in self.collection.find(query)
-            ]
-        return [
-            self.unwrap(result)
-            for result in self.collection.find(query).limit(limit)
-        ]
+        results = self.collection.find(query)
+        if limit is not None:
+            results = results.limit(limit)
+        return [self.unwrap(result) for result in results]

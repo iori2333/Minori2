@@ -3,7 +3,7 @@ from typing import Optional, Sequence, Type, TypeVar
 from bson import ObjectId
 from pymongo.database import Database as MongoDatabase
 
-from nonebot.adapters.onebot.v11 import MessageEvent, GroupMessageEvent, PrivateMessageEvent
+from minori.adapter import MessageEvent, GroupMessageEvent, FriendMessageEvent
 
 from .mongo import db, Collection
 
@@ -27,28 +27,27 @@ class DatabaseHook(ABC):
     @abstractmethod
     def on_private_message(
         self,
-        event: PrivateMessageEvent,
+        event: FriendMessageEvent,
         inserted: ObjectId,
-        collection: Collection[PrivateMessageEvent],
+        collection: Collection[FriendMessageEvent],
     ) -> None:
         raise NotImplementedError()
 
 
 class Database:
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.db = db
         self._group = Collection("group", GroupMessageEvent)
-        self._private = Collection("private", PrivateMessageEvent)
+        self._private = Collection("private", FriendMessageEvent)
         self._hooks: list[DatabaseHook] = []
 
     def insert(self, event: MessageEvent) -> None:
-        object_id: ObjectId
         if isinstance(event, GroupMessageEvent):
             object_id = self._group.save(event)
             for hook in self._hooks:
                 hook.on_group_message(event, object_id, self._group)
-        elif isinstance(event, PrivateMessageEvent):
+        elif isinstance(event, FriendMessageEvent):
             object_id = self._private.save(event)
             for hook in self._hooks:
                 hook.on_private_message(event, object_id, self._private)
@@ -68,7 +67,7 @@ class Database:
         self,
         user_id: int,
         k: Optional[int] = None,
-    ) -> Sequence[PrivateMessageEvent]:
+    ) -> Sequence[FriendMessageEvent]:
         return self._private.query({"user_id": user_id}, k)
 
     def register_hook(self, hook: Type[TM]) -> TM:

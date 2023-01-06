@@ -19,4 +19,4 @@ class ResourceTokens(BaseModel):
 
 
 token_db = db.register_hook(TokenDatabase)
-resources = manager.model("ask.tokens", ResourceTokens)
+tokens = manager.model("ask.tokens", ResourceTokens)

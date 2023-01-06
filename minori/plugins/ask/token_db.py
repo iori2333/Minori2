@@ -6,15 +6,13 @@ from bson import ObjectId
 from pymongo.database import Database as MongoDatabase
 from pymongo.collection import Collection as MongoCollection
 
-from nonebot.adapters.onebot.v11 import (
+from minori.adapter import (
     Message,
     MessageEvent,
     GroupMessageEvent,
-    PrivateMessageEvent,
+    FriendMessageEvent,
 )
-
 from minori.utils import DatabaseHook, Collection
-from minori.utils.database import db
 
 
 class Token(TypedDict):
@@ -39,9 +37,9 @@ class TokenDatabase(DatabaseHook):
         event: MessageEvent,
     ) -> tuple[int, MongoCollection[Token]]:
         if isinstance(event, GroupMessageEvent):
-            return event.group_id, self._group
-        elif isinstance(event, PrivateMessageEvent):
-            return event.user_id, self._private
+            return event.sender.group.id, self._group
+        elif isinstance(event, FriendMessageEvent):
+            return event.sender.id, self._private
         else:
             raise TypeError("Unsupported event type")
 
@@ -59,16 +57,16 @@ class TokenDatabase(DatabaseHook):
             token = Token(
                 created_at=datetime.now(),
                 message=text,
-                session_id=event.group_id,
+                session_id=event.sender.group.id,
             )
             self._group.insert_one(token)
 
     @override
     def on_private_message(
         self,
-        event: PrivateMessageEvent,
+        event: FriendMessageEvent,
         inserted: ObjectId,
-        _: Collection[PrivateMessageEvent],
+        _: Collection[FriendMessageEvent],
     ) -> None:
         msg = event.get_message()
         is_text = any(m.is_text() for m in msg)
@@ -77,7 +75,7 @@ class TokenDatabase(DatabaseHook):
             token = Token(
                 created_at=datetime.now(),
                 message=text,
-                session_id=event.user_id,
+                session_id=event.sender.id,
             )
             self._private.insert_one(token)
 

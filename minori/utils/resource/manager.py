@@ -30,7 +30,7 @@ class ResourceManager:
         paths = identifier.split(".")
         resource_path = osp.join(self._resource_dir, *paths) + ".json"
         try:
-            with open(resource_path, "r") as f:
+            with open(resource_path, "r", encoding="utf8") as f:
                 return json.load(f)
         except Exception as e:
             logger.error(f"Failed loading resource: {identifier}: {e}")
@@ -48,7 +48,7 @@ class ResourceManager:
         paths = identifier.split(".")
         resource_path = osp.join(self._resource_dir, *paths) + ".toml"
         try:
-            with open(resource_path, "r") as f:
+            with open(resource_path, "r", encoding="utf8") as f:
                 return toml.load(f)
         except Exception as e:
             logger.error(f"Failed loading resource: {identifier}: {e}")

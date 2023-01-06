@@ -2,9 +2,9 @@ import random
 from typing import Callable, Optional
 import re
 
-from nonebot.adapters.onebot.v11 import Bot, Message, MessageEvent, GroupMessageEvent
+from minori.adapter import Bot, Message, MessageEvent, GroupMessageEvent
 
-from .resources import resources, token_db
+from .resources import tokens, token_db
 
 WHERE = re.compile("哪里")
 HOW_MUCH = re.compile("多少")
@@ -14,7 +14,7 @@ WHAT = re.compile("什么")
 WHO = re.compile("谁")
 OR = re.compile("还是")
 NOT = re.compile(r"(.)(不|没)\1")
-PERSON = re.compile(f"({'|'.join(resources.me + resources.you)})")
+PERSON = re.compile(f"({'|'.join(tokens.me + tokens.you)})")
 
 Pattern = re.Pattern[str]
 Match = re.Match[str]
@@ -41,7 +41,7 @@ class Parser:
 
     @classmethod
     def is_question(cls, message: str) -> bool:
-        if any(message.startswith(x) for x in resources.forbidden):
+        if any(message.startswith(x) for x in tokens.forbidden):
             return False
         return message.startswith("问")
 
@@ -57,10 +57,8 @@ class Parser:
             raw_message = reg.sub(func, raw_message)
 
         if isinstance(event, GroupMessageEvent):
-            members_ = await bot.get_group_member_list(group_id=event.group_id)
-            members: list[str] = [
-                member["card"] or member["nickname"] for member in members_
-            ]
+            members_ = await bot.member_list(target=event.sender.group.id)
+            members = list(map(lambda m: m["memberName"], members_["data"]))
             for reg, func2 in self.group_mapping.items():
                 raw_message = reg.sub(lambda x: func2(x, members), raw_message)
 
@@ -91,21 +89,18 @@ class Parser:
         return random.choice(members)
 
     def random_where(self, _: Match, members: list[str]) -> str:
-        where_fmt = random.choice(resources.where)
+        where_fmt = random.choice(tokens.where)
         person = random.choice(members)
         return where_fmt.format(person)
 
     def replace_person(self, m: Match) -> str:
         p = m.group(1)
-        if p in resources.me:
-            return random.choice(resources.you)
-        if p in resources.you:
-            return random.choice(resources.me)
+        if p in tokens.me:
+            return random.choice(tokens.you)
+        if p in tokens.you:
+            return random.choice(tokens.me)
         return p
 
     def random_what(self, event: MessageEvent) -> str:
         token = token_db.random(event)
         return token.extract_plain_text() if token else ""
-
-
-parser = Parser()

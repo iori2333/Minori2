@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import nonebot
-from nonebot.adapters.onebot.v11 import Adapter as ONEBOT_V11Adapter
+from nonebot.adapters.mirai2 import Adapter as Mirai2Adapter
 
 # Custom your logger
 #
@@ -19,9 +19,7 @@ nonebot.init()
 app = nonebot.get_asgi()
 
 driver = nonebot.get_driver()
-driver.register_adapter(ONEBOT_V11Adapter)
-# if driver.config.debug:
-#     driver.register_adapter(CONSOLEAdapter)
+driver.register_adapter(Mirai2Adapter)
 
 nonebot.load_builtin_plugins("echo")
 

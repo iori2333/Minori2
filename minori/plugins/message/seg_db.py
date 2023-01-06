@@ -8,12 +8,9 @@ from pymongo.database import Database as MongoDatabase
 from pymongo.collection import Collection as MongoCollection
 from jieba import posseg
 
-from nonebot.adapters.onebot.v11 import GroupMessageEvent, PrivateMessageEvent, MessageEvent, Message
-
+from minori.adapter import GroupMessageEvent, FriendMessageEvent, MessageEvent, Message
 from minori.utils import DatabaseHook, Collection
 from minori.utils.database import db
-
-FLAGS = {"n", "s", "nw", "nt", "v", "nz", "l"}
 
 
 class Segment(TypedDict):
@@ -25,6 +22,8 @@ class Segment(TypedDict):
 
 
 class SegmentDatabase(DatabaseHook):
+
+    FLAGS = {"n", "s", "nw", "nt", "v", "nz", "l"}
 
     def __init__(self, db: MongoDatabase) -> None:
         super().__init__(db)
@@ -60,9 +59,9 @@ class SegmentDatabase(DatabaseHook):
     @override
     def on_private_message(
         self,
-        event: PrivateMessageEvent,
+        event: FriendMessageEvent,
         inserted: ObjectId,
-        _: Collection[PrivateMessageEvent],
+        _: Collection[FriendMessageEvent],
     ) -> None:
         self.cut_insert(event, inserted)
 
@@ -70,7 +69,7 @@ class SegmentDatabase(DatabaseHook):
     def cut(event: MessageEvent) -> Sequence[str]:
         return [
             word for word, flag in posseg.cut(event.get_plaintext())
-            if flag in FLAGS
+            if flag in SegmentDatabase.FLAGS
         ]
 
     def session(
@@ -78,9 +77,9 @@ class SegmentDatabase(DatabaseHook):
         event: MessageEvent,
     ) -> tuple[int, MongoCollection[Segment]]:
         if isinstance(event, GroupMessageEvent):
-            return event.group_id, self._group
-        elif isinstance(event, PrivateMessageEvent):
-            return event.user_id, self._private
+            return event.sender.group.id, self._group
+        elif isinstance(event, FriendMessageEvent):
+            return event.sender.id, self._private
         else:
             raise TypeError("Unsupported event type")
 
