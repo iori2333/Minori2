@@ -2,20 +2,37 @@ import json
 from typing import Generic, Optional, Sequence, Type, TypeVar
 
 from bson import ObjectId
-from pydantic import BaseModel
+from pydantic import BaseModel, Extra
 from pymongo import MongoClient
 from pymongo.collection import Collection as MongoCollection
 
+from nonebot import get_driver
+
 T = TypeVar("T", bound=BaseModel)
 
-client = MongoClient("localhost", 27017, username="root", password="root")
+
+class MongoConfig(BaseModel, extra=Extra.ignore):
+    mongo_host: Optional[str]
+    mongo_port: Optional[int]
+    mongo_username: Optional[str]
+    mongo_password: Optional[str]
+
+
+driver = get_driver()
+config = MongoConfig.parse_obj(driver.config)
+client = MongoClient(
+    host="localhost",
+    port=config.mongo_port,
+    username=config.mongo_username,
+    password=config.mongo_password,
+)
 db = client.minori
 
 
 class WrappedModel(dict, Generic[T]):
 
     def __init__(self, model: T) -> None:
-        data = json.loads(model.json())
+        data = json.loads(model.json(by_alias=True))
         self.update(data)
         if "_id" in self:
             self.pop("_id")
@@ -29,6 +46,8 @@ class Collection(Generic[T]):
         self.document_type = document_type
 
     def unwrap(self, data: WrappedModel[T]) -> T:
+        if "_id" in data:
+            data.pop("_id")
         return self.document_type.parse_obj(data)
 
     def save(self, data: T) -> ObjectId:

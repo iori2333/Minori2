@@ -1,8 +1,3 @@
-from nonebot.adapters.mirai2 import (
-    message as messages,
-    permission as permissions,
-)
-
 from nonebot.adapters.mirai2.event import (
     Event,
     MessageEvent,

@@ -1,16 +1,38 @@
 import random
 from nonebot import on_fullmatch, on_startswith
 
-from minori.adapter import Bot, MessageEvent
-from minori.utils import Priority
+from minori.adapter import Bot, MessageEvent, Priority, default_permission
 
 from .question_parser import Parser
 from .resources import tokens
 
-ask_matcher = on_startswith("问", priority=Priority.Now, block=True)
-eat_matcher = on_fullmatch("吃什么", priority=Priority.Now, block=True)
-learn_matcher = on_fullmatch("学什么", priority=Priority.Now, block=True)
-game_matcher = on_fullmatch("玩什么", priority=Priority.Now, block=True)
+ask_matcher = on_startswith(
+    "问",
+    priority=Priority.Now,
+    block=True,
+    permission=default_permission,
+)
+
+eat_matcher = on_fullmatch(
+    "吃什么",
+    priority=Priority.Now,
+    block=True,
+    permission=default_permission,
+)
+
+learn_matcher = on_fullmatch(
+    "学什么",
+    priority=Priority.Now,
+    block=True,
+    permission=default_permission,
+)
+
+game_matcher = on_fullmatch(
+    "玩什么",
+    priority=Priority.Now,
+    block=True,
+    permission=default_permission,
+)
 
 parser = Parser()
 

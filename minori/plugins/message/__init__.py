@@ -1,8 +1,7 @@
 from nonebot import on_type
 
-from minori.adapter import MessageSegment, MessageEvent
+from minori.adapter import MessageSegment, MessageEvent, Priority
 from minori.adapter.event import NudgeEvent, MemberMuteEvent, MemberLeaveEventQuit, MemberJoinEvent
-from minori.utils import Priority
 from minori.utils.database import db
 
 from .seg_db import SegmentDatabase
@@ -54,6 +53,8 @@ async def store(event: MessageEvent) -> None:
 
 @db_matcher.handle()
 async def load(event: MessageEvent) -> None:
-    msg = seg_database.random(event, p=0.1)
+    msg = seg_database.random(event, p=1)
     if msg is not None and msg != event.get_message():
+        for seg in msg:
+            print(seg, seg.type, seg.data, str(seg))
         await db_matcher.finish(msg)
